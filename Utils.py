@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import time
+from typing import Callable
 
 
 def is_app_running_ps(package_name):
@@ -25,7 +26,7 @@ def is_app_running_ps(package_name):
         return False
 
 
-def wait_until(condition, *args,  interval=2, timeout=150, **kwargs,):
+def wait_until(condition: Callable[..., bool], *args,  interval=2, timeout=150, **kwargs,):
     start = time.time()
     while not condition(*args, **kwargs) and time.time() - start < timeout:
         time.sleep(interval)
