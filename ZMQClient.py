@@ -37,11 +37,11 @@ class ZmqClient(object):
 
     def tcp_connect(self):
         try:
-            self.tcp_socket = self.context.socket(zmq.REP)
+            self.tcp_socket = self.context.socket(zmq.REQ)
             self.tcp_socket.setsockopt(zmq.LINGER, 0)
             self.tcp_socket.setsockopt(zmq.RCVTIMEO, self.rcv_out)
             self.tcp_socket.connect("tcp://{addr}:{p}".format(addr=self.ip, p=self.tcp_port))
-            self.tcp_socket.bind("tcp://{addr}:{p}".format(addr=self.ip, p=self.tcp_port))
+            # self.tcp_socket.bind("tcp://{addr}:{p}".format(addr=self.ip, p=self.tcp_port))
         except Exception as e:
             # print("connect ZMQ-TCP error: {}".format(e))
             self.tcp_socket = None

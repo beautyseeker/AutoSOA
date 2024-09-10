@@ -16,21 +16,8 @@ files_to_push = {
     replay_cfg_src_path: replay_data_dst_path
 }
 
-
 # 遍历文件字典并执行 adb push 命令
-for src_path, dst_path in files_to_push.items():
-    if not os.path.exists(src_path):
-        print(Fore.RED + f"File dir:{src_path} is not exist")
-        break
-    if is_dir_exists_on_device(dst_path):
-        break
-    else:
-        run_cmd(f"adb shell mkdir {dst_path}")
-    command = f"adb push \"{src_path}\" \"{dst_path}\""
-    if not run_cmd(command):
-        sys.exit(-1)
 
-print(Fore.GREEN + "All replay files Ready.")
 run_cmd(f"adb shell stop")
 run_cmd(f"adb shell start")
 
@@ -45,6 +32,4 @@ wait_until(is_app_running_ps, package_name=b"com.nio.metacar")
 soa = ZmqClient()
 time.sleep(2)
 soa.send_data(service="GearCtrlSrv", instance_name="GearCtrlSrvPri", rpc="IfGearInfo",
-              data={'GearInfo.display_act_gear': 3, 'GearInfo.display_act_gear_vld': True})
-
-run_cmd(f"adb shell am broadcast  -a  com.alps.metacar_ACTION_TEST_NAVI_PLUS --ei play_back 1")
+              data={'GearInfo.display_act_gear': 0, 'GearInfo.display_act_gear_vld': True})
