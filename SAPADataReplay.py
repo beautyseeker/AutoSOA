@@ -4,32 +4,31 @@ import sys
 import time
 from colorama import init, Fore
 from ZMQClient import ZmqClient
-from Utils import is_app_running_ps, wait_until, is_dir_exists_on_device, run_cmd
+from Utils import *
+
 
 replay_data_src_path = r"/home/nio/Desktop/pbdata_play"
-replay_cfg_src_path = r"/home/nio/Desktop/data_adapter_play_debug.json"
-replay_cfg_dst_path = "data/user/0/com.nio.metacar/files/AquilaConfig/DA/"
-replay_data_dst_path = "data/user/0/com.nio.metacar/files/AquilaData/"
-# 定义文件和目标路径的映射
-files_to_push = {
-    replay_data_src_path: replay_data_dst_path,
-    replay_cfg_src_path: replay_data_dst_path
-}
 
-# 遍历文件字典并执行 adb push 命令
-
-run_cmd(f"adb shell stop")
-run_cmd(f"adb shell start")
 
 #模拟长按唤出自车界面
-long_press = lambda : run_cmd(f"adb shell input swipe 900 700 900 700 2000")
-wait_until(is_app_running_ps, package_name=b"com.nextev.account", delay_wait=20, callback=long_press)
+if is_app_running_ps(AppSimplifiedName.ESD.value):
+    if set_gear(GearStatus.R):
+        # 将SAPA_STS切换为IN_SEARCH
+        ZmqClient.instance.send_data(service='PrkgFuncMgr', rpc='PrkgStsInfo', data={'PrkgStsInfoData.sapa_sts': 1})
+        # 调用数据回放
+        ZmqClient.instance.reply(switch='play',
+                                 file='0227a2c0-6d7d-4dde-acca-ab67296d3950_common-vehicle_out-sapa_ui_results_eth_1724224546786993599.pb.dat')
+    else:
+        print(f"Switch Gear Failed!")
+        sys.exit(-1)
 
-wait_until(is_app_running_ps, package_name=b"com.nio.metacar")
+while is_app_running_ps(AppSimplifiedName.ESD.value) is False:
+    if is_app_running_ps(AppSimplifiedName.SIG_PAGE):
+        long_press = lambda: run_cmd(f"adb shell input swipe 900 700 900 700 2000")
+        wait_until(is_app_running_ps, package_name=b"com.nio.metacar", callback=long_press)
+        wait_until(is_app_running_ps, package_name=AppSimplifiedName.ESD.value)
+    else:
+        wait_until(is_app_running_ps, package_name=AppSimplifiedName.SIG_PAGE.value)
 
 
-# 模拟SOA服务发送D挡
-soa = ZmqClient()
-time.sleep(2)
-soa.send_data(service="GearCtrlSrv", instance_name="GearCtrlSrvPri", rpc="IfGearInfo",
-              data={'GearInfo.display_act_gear': 0, 'GearInfo.display_act_gear_vld': True})
+

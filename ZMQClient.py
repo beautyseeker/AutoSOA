@@ -9,6 +9,7 @@ from datetime import datetime
 
 
 class ZmqClient(object):
+    instance = None
     def __init__(self, ip="127.0.0.1", rcv_out=90000, tcp_port=30002, udp_port=30001):
         """
         :param ip:
@@ -24,6 +25,11 @@ class ZmqClient(object):
         self.tcp_socket = None
         self.udp_socket = None
         self.connect()
+
+    def __new__(cls, *args, **kwargs):
+        if not cls.instance:
+            cls.instance = super(ZmqClient, cls).__new__(cls)
+        return cls.instance
 
     def connect(self):
         if self.tcp_port and self.tcp_socket is None:
@@ -519,15 +525,4 @@ def connect_data_paser(connect_data, client_ECU="CDF"):
         else:
             print(f"client:[{c_addr}]未连接server, 当前状态:{c_data.get('status')}")
     return ret
-
-
-if __name__ == "__main__":
-    soa = ZmqClient()
-    time.sleep(1)
-    while True:
-        for i in range(3):
-            time.sleep(1)
-            soa.send_data("GearCtrlSrv", "IfGearInfo", instance_name="GearCtrlSrvPri",
-                          data={"GearInfo.display_act_gear": i,
-                                "GearInfo.display_act_gear_vld": 1}, )  # nonblocking=True
 

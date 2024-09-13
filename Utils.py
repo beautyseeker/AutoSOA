@@ -1,9 +1,26 @@
 import subprocess
 import sys
 import time
-from typing import Callable
+from typing import Callable, Union
 from colorama import init, Fore
+from enum  import IntEnum, Enum
 
+from ZMQClient import ZmqClient
+
+
+class GearStatus(IntEnum):
+    P = 0,
+    R = 1,
+    N = 2,
+    D = 3,
+    Invalid = -1000
+
+class AppSimplifiedName(Enum):
+    ESD = 'com.nio.metacar',
+    SIG_PAGE = 'com.nextev.account'
+
+    def __str__(self):
+        return self.value
 
 def is_dir_exists_on_device(path):
     try:
@@ -35,7 +52,10 @@ def is_app_running_ps(package_name):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-
+        if type(package_name) == str:
+            package_name = package_name.decode()
+        elif type(package_name) == AppSimplifiedName:
+            package_name = package_name.value.decode()
         # 检查包名是否在进程列表中
         if package_name in result.stdout:
             print(f"应用 {package_name} 已启动")
@@ -71,3 +91,26 @@ def run_cmd(cmd: str) -> bool:
     except subprocess.CalledProcessError as e:
         print(Fore.RED + f"An error occurred while pushing: {e.stderr.decode()}")
         return False
+
+
+def get_cur_gear() -> GearStatus:
+    soa = ZmqClient()
+    data_dict = soa.read_data("GearCtrlSrv", "IfGearInfo", instance_name="GearCtrlSrvPri")
+    try:
+        gear = GearStatus(data_dict['data']['GearInfo']['display_act_gear'])
+    except ValueError:
+        gear = GearStatus.Invalid
+    return gear
+
+def set_gear(gear: Union[int, GearStatus]) -> bool:
+    soa = ZmqClient()
+    soa.send_data(service="GearCtrlSrv", instance_name="GearCtrlSrvPri", rpc="IfGearInfo",
+              data={'GearInfo.display_act_gear': gear, 'GearInfo.display_act_gear_vld': True})
+    cur_gear = get_cur_gear()
+    return gear == cur_gear
+
+def replay(data_filename: str) -> bool:
+    soa = ZmqClient()
+    temp = soa.reply('play', data_filename)
+    print(temp)
+    return True
