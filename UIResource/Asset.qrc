@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="Car">
+    <file>CarOverLookImg.jpg</file>
+  </qresource>
+</RCC>
