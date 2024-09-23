@@ -15,6 +15,8 @@ class GearStatus(IntEnum):
     D = 3,
     Invalid = -1000
 
+conor_area_signals = ["车门", "车窗", "把手"]
+
 class AppSimplifiedName(Enum):
     ESD = 'com.nio.metacar',
     SIG_PAGE = 'com.nextev.account'
@@ -44,6 +46,22 @@ def is_dir_exists_on_device(path):
         print(f"发生错误: {e}")
         return False
 
+
+@staticmethod
+def is_adb_device_connect() -> bool:
+    try:
+        result = subprocess.run(["adb", "devices"], capture_output=True, text=True)
+        output = result.stdout.splitlines()
+        devices = [line for line in output if "device" in line and not line.startswith("List")]
+        if devices:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"运行 adb devices 时出错: {e}")
+        return False
+
+
 def is_app_running_ps(package_name):
     try:
         # 使用 adb shell ps 命令列出进程
@@ -68,7 +86,7 @@ def is_app_running_ps(package_name):
         return False
 
 
-def wait_until(condition: Callable[..., bool], *args,  interval=2, timeout=150, delay_wait=0, callback=None,**kwargs,):
+def wait_until(condition: Callable[..., bool], *args,  interval=2, timeout=150, delay_wait=0, callback=None, **kwargs,):
     start = time.time()
     while condition(*args, **kwargs) == False and time.time() - start < timeout:
         time.sleep(interval)
@@ -114,3 +132,83 @@ def replay(data_filename: str) -> bool:
     temp = soa.reply('play', data_filename)
     print(temp)
     return True
+
+def set_door_stat(area: int, stat: int) -> bool:
+    """
+    :param area: 从左上角开始area为0,俯视顺时针方向递增
+    :param stat: 2:开门, 1:关门
+    :return:本次状态设置是否成功
+    """
+    soa = ZmqClient()
+    soa.send_data(service="DoorOpenMgr", rpc="DoorOpenSts",
+                  data={f"DoorOpenStatus.door_sts[{area}].door_ajar_sts_validity": 1,
+                        f"DoorOpenStatus.door_sts[{area}].door_ajar_sts": stat})
+
+def get_door_stat() -> list[int]:
+    soa = ZmqClient()
+    data_dict = soa.read_data(service="DoorOpenMgr", rpc="DoorOpenSts")
+    try:
+        door_stat_list = [item.get('door_hndl_sts', -1) for item in
+                          data_dict['data']['DoorOpenStatus']['door_sts']['door_ajar_sts']]
+        return door_stat_list
+    except ValueError or IndexError:
+        return []
+
+
+def set_door_handle_stat(area: int, stat: int) -> bool:
+    """
+    :param area: 从左上角开始area为0,俯视顺时针方向递增
+    :param stat: 2:收起, 1:展开
+    :return:
+    """
+    soa = ZmqClient()
+    soa.send_data(service="DoorHndlMgr", rpc="DoorHndlSts",
+                  data={f"DoorHndlStatus.side_door_hndl_sts[{area}].door_hndl_sts": stat})
+
+
+def get_door_handle_stat() -> list:
+    """
+    输入为{'soakey': }组成的字典列表
+
+    :return:将字典列表转换为整型列表，转换规则为输出字典条目下的door_hdnl_sts值,若不存在则输出-1
+    """
+    soa = ZmqClient()
+    data_dict = soa.read_data(service="DoorHndlMgr", rpc="DoorHndlSts")
+    try:
+        door_stat_list = [item.get('door_hndl_sts', -1) for item in data_dict['data']['DoorHndlStatus']['side_door_hndl_sts']]
+        return door_stat_list
+    except ValueError or IndexError:
+        return []
+
+def get_window_stat() -> list:
+    """
+    输入为{'soakey': }组成的字典列表
+
+    :return:将字典列表转换为整型列表，转换规则为输出字典条目下的win_open_value值,若不存在则输出-1
+    """
+    soa = ZmqClient()
+    data_dict = soa.read_data(service="WinMgr", rpc="WinSts")
+    try:
+        door_stat_list = [item.get('win_open_value', -1) for item in data_dict['data']['WinStsInfo']['win_status_info']]
+        return door_stat_list
+    except ValueError or IndexError:
+        return []
+
+
+def set_window_stat(area: int, stat: int) -> bool:
+    """
+    :param area: 从左上角开始area为0,俯视顺时针方向递增
+    :param stat: 2:开门, 1:关门
+    :return:本次状态设置是否成功
+    """
+    soa = ZmqClient()
+    if stat == 1:
+        open_value = 100
+    else:
+        open_value = 0
+    soa.send_data(service="WinMgr", rpc="WinSts",
+                  data={f"WinStsInfo.win_status_info[{area}].win_open_value": open_value})
+
+def get_conor_signal_group(area: int) -> dict[str, int]:
+    conor_signal_group = [get_door_stat()[area], get_window_stat()[area], get_door_handle_stat()[area]]
+    return dict(zip(conor_area_signals, conor_signal_group))

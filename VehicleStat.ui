@@ -17,8 +17,8 @@
    <widget class="QFrame" name="GearFrame">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>20</y>
+      <x>70</x>
+      <y>40</y>
       <width>272</width>
       <height>61</height>
      </rect>
@@ -97,24 +97,6 @@ background-color:gray;
       </widget>
      </item>
     </layout>
-   </widget>
-   <widget class="QPushButton" name="pushButton">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>200</y>
-      <width>141</width>
-      <height>71</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>18</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>左上部分</string>
-    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
