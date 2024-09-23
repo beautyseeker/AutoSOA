@@ -144,12 +144,12 @@ def set_door_stat(area: int, stat: int) -> bool:
                   data={f"DoorOpenStatus.door_sts[{area}].door_ajar_sts_validity": 1,
                         f"DoorOpenStatus.door_sts[{area}].door_ajar_sts": stat})
 
-def get_door_stat() -> list[int]:
+def get_door_stat() -> list:
     soa = ZmqClient()
     data_dict = soa.read_data(service="DoorOpenMgr", rpc="DoorOpenSts")
     try:
-        door_stat_list = [item.get('door_hndl_sts', -1) for item in
-                          data_dict['data']['DoorOpenStatus']['door_sts']['door_ajar_sts']]
+        door_stat_list = [item.get('door_ajar_sts', -1) for item in
+                          data_dict['data']['DoorOpenStatus']['door_sts']]
         return door_stat_list
     except ValueError or IndexError:
         return []
@@ -209,6 +209,6 @@ def set_window_stat(area: int, stat: int) -> bool:
     soa.send_data(service="WinMgr", rpc="WinSts",
                   data={f"WinStsInfo.win_status_info[{area}].win_open_value": open_value})
 
-def get_conor_signal_group(area: int) -> dict[str, int]:
+def get_conor_signal_group(area: int) -> dict:
     conor_signal_group = [get_door_stat()[area], get_window_stat()[area], get_door_handle_stat()[area]]
     return dict(zip(conor_area_signals, conor_signal_group))

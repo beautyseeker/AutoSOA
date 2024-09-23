@@ -13,7 +13,7 @@ replay_data_dst_path = "data/user/0/com.nio.metacar/files/AquilaData/"
 # 定义文件和目标路径的映射
 files_to_push = {
     replay_data_src_path: replay_data_dst_path,
-    replay_cfg_src_path: replay_data_dst_path
+    replay_cfg_src_path: replay_cfg_dst_path
 }
 
 
