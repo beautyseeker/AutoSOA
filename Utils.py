@@ -16,6 +16,7 @@ class GearStatus(IntEnum):
     Invalid = -1000
 
 conor_area_signals = ["车门", "车窗", "把手"]
+soa = ZmqClient()
 
 class AppSimplifiedName(Enum):
     ESD = 'com.nio.metacar',
@@ -112,7 +113,6 @@ def run_cmd(cmd: str) -> bool:
 
 
 def get_cur_gear() -> GearStatus:
-    soa = ZmqClient()
     data_dict = soa.read_data("GearCtrlSrv", "IfGearInfo", instance_name="GearCtrlSrvPri")
     try:
         gear = GearStatus(data_dict['data']['GearInfo']['display_act_gear'])
@@ -121,14 +121,12 @@ def get_cur_gear() -> GearStatus:
     return gear
 
 def set_gear(gear: Union[int, GearStatus]) -> bool:
-    soa = ZmqClient()
     soa.send_data(service="GearCtrlSrv", instance_name="GearCtrlSrvPri", rpc="IfGearInfo",
               data={'GearInfo.display_act_gear': gear, 'GearInfo.display_act_gear_vld': True})
     cur_gear = get_cur_gear()
     return gear == cur_gear
 
 def replay(data_filename: str) -> bool:
-    soa = ZmqClient()
     temp = soa.reply('play', data_filename)
     print(temp)
     return True
@@ -139,13 +137,11 @@ def set_door_stat(area: int, stat: int) -> bool:
     :param stat: 2:开门, 1:关门
     :return:本次状态设置是否成功
     """
-    soa = ZmqClient()
     soa.send_data(service="DoorOpenMgr", rpc="DoorOpenSts",
                   data={f"DoorOpenStatus.door_sts[{area}].door_ajar_sts_validity": 1,
                         f"DoorOpenStatus.door_sts[{area}].door_ajar_sts": stat})
 
 def get_door_stat() -> list:
-    soa = ZmqClient()
     data_dict = soa.read_data(service="DoorOpenMgr", rpc="DoorOpenSts")
     try:
         door_stat_list = [item.get('door_ajar_sts', -1) for item in
@@ -161,7 +157,6 @@ def set_door_handle_stat(area: int, stat: int) -> bool:
     :param stat: 2:收起, 1:展开
     :return:
     """
-    soa = ZmqClient()
     soa.send_data(service="DoorHndlMgr", rpc="DoorHndlSts",
                   data={f"DoorHndlStatus.side_door_hndl_sts[{area}].door_hndl_sts": stat})
 
@@ -172,7 +167,6 @@ def get_door_handle_stat() -> list:
 
     :return:将字典列表转换为整型列表，转换规则为输出字典条目下的door_hdnl_sts值,若不存在则输出-1
     """
-    soa = ZmqClient()
     data_dict = soa.read_data(service="DoorHndlMgr", rpc="DoorHndlSts")
     try:
         door_stat_list = [item.get('door_hndl_sts', -1) for item in data_dict['data']['DoorHndlStatus']['side_door_hndl_sts']]
@@ -186,7 +180,6 @@ def get_window_stat() -> list:
 
     :return:将字典列表转换为整型列表，转换规则为输出字典条目下的win_open_value值,若不存在则输出-1
     """
-    soa = ZmqClient()
     data_dict = soa.read_data(service="WinMgr", rpc="WinSts")
     try:
         door_stat_list = [item.get('win_open_value', -1) for item in data_dict['data']['WinStsInfo']['win_status_info']]
@@ -201,13 +194,58 @@ def set_window_stat(area: int, stat: int) -> bool:
     :param stat: 2:开门, 1:关门
     :return:本次状态设置是否成功
     """
-    soa = ZmqClient()
     if stat == 1:
         open_value = 100
     else:
         open_value = 0
     soa.send_data(service="WinMgr", rpc="WinSts",
                   data={f"WinStsInfo.win_status_info[{area}].win_open_value": open_value})
+
+def set_hood_stat(stat: int)-> bool:
+    """设置前盖开闭状态"""
+    soa.send_data(service="HoodMgr", rpc="CentHoodSts",
+                  data={"HoodStatus.hood_ajar_sts": stat})
+
+
+def get_hood_stat() -> int:
+    data_dict = soa.read_data(service="HoodMgr", rpc="CentHoodSts")
+    data_item = data_dict['data']['HoodStatus']
+    return data_item.get('hood_ajar_sts', -1)
+
+def set_trunk_lid_stat(stat: int) -> bool:
+    open_value = 100 if stat == 2 else 0
+    soa.send_data(service="PlgMgr", rpc="CentPlgSts",
+                  data={"PlgStatus.tr_ajar_sts": stat, "PlgStatus.plg_posn": open_value})
+
+def get_trunk_lid_stat() -> int:
+    data_dict = soa.read_data(service="PlgMgr", rpc="CentPlgSts")
+    data_item = data_dict['data']['PlgStatus']
+    return data_item.get('PlgStatus.tr_ajar_sts', -1)
+
+def set_charger_stat(stat: int) -> bool:
+    """
+    设置充电盖开闭状态
+    :param stat: 2开启 1关闭
+    :return:
+    """
+    soa.send_data(service="ChrgrGateMgr", rpc="ChrgrGateWorkSts",
+                  data={"ChrgrGateWorkStatus.chrgr_port_ajar_sts": stat})
+
+def get_charger_stat() -> int:
+    data_dict = soa.read_data(service="ChrgrGateMgr", rpc="ChrgrGateWorkSts")
+    data_item = data_dict['data']['ChrgrGateWorkStatus']
+    return data_item.get('chrgr_port_ajar_sts', -1)
+
+
+def get_mirror_stat() -> list:
+
+    data_dict = soa.read_data(service="MirrFoldMgr", rpc="MirrFoldSts")
+    try:
+        door_stat_list = [item.get('left_mirr_fold_sts', -1) for item in data_dict['data']['MirrFoldStsInfo']]
+        return door_stat_list
+    except ValueError or IndexError:
+        return []
+
 
 def get_conor_signal_group(area: int) -> dict:
     conor_signal_group = [get_door_stat()[area], get_window_stat()[area], get_door_handle_stat()[area]]
