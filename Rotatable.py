@@ -26,7 +26,7 @@ class SwitchSignalListItem(QtWidgets.QListWidgetItem):
 
 
     def click(self, area=None):
-        """根据当前Item的名字、当前选中is_on信号状态(再映射回stat值)、选取不同的设置信号方法"""
+        """在当前信号的所有状态枚举字典内循环切换"""
         print(f"Area Id:{area}")
         key, value = next(self.signal_stat_enum_cycle)
         if area is None:
@@ -56,9 +56,9 @@ class SwitchSignalListArea(QtWidgets.QListWidget):
 
     def __init__(self, *args, size=QtCore.QRect(), signal_list=None, bind_choice = None, **kwargs, ):
         super().__init__(*args, **kwargs)
-        if bind_choice is not None:
-            bind_choice.bind_QListWidget = self
         self.bind_choice = bind_choice
+        if self.bind_choice is not None:
+            self.bind_choice.currentIndexChanged.connect(self.update_bind_signal_stat)
         self.itemClicked.connect(self.clicked)
         self.signal_stat_dict = SwitchSignalListArea.mapping_rule_dict
         self.setGeometry(size)
@@ -83,13 +83,19 @@ class SwitchSignalListArea(QtWidgets.QListWidget):
         self.signal_stat_dict[aitem.signal_name]['bind_item'] = aitem
 
     def update_signal_stat_style(self, stat_dict: typing.Dict[str, int]) -> None:
-        """根据获取到一组信号状态来设置ListItem的样式"""
+        """根据获取到一组信号状态来设置该组ListItem的样式"""
         for key, value in stat_dict.items():
-            sig_sts_dict = self.signal_stat_dict[key]['sig_sts']
-            for enum_key, sig_val in sig_sts_dict.items():
+            sig_sts_enum_dict = self.signal_stat_dict[key]['sig_sts']
+            for enum_key, sig_val in sig_sts_enum_dict.items():
                 if value == sig_val:
                     self.signal_stat_dict[key]['bind_item'].update_prompt(enum_key)
                     break
+
+    def update_bind_signal_stat(self, area_index):
+        """根据选中的Area Id获取当前Conor下的车控信号状态,并更新该组信号列表状态"""
+        if self.bind_choice is not None:
+            stat_dict = get_conor_signal_group(area_index)
+            self.update_signal_stat_style(stat_dict)
 
 
 class AreaChoice(QtWidgets.QComboBox):
@@ -98,21 +104,12 @@ class AreaChoice(QtWidgets.QComboBox):
     """
     def __init__(self,*args, size=None, choice_list=None,**kwargs):
         super().__init__(*args,**kwargs)
-        self.bind_QListWidget = None
         self.check_box_font = QtGui.QFont("Alibaba PuHuiTi", 18)
         self.setFont(self.check_box_font)
         self.setEditable(True)
         self.setGeometry(size)
         self.addItems(choice_list)
         self.setCurrentIndex(-1)
-        self.currentIndexChanged.connect(self.update_bind_signal_stat)
-
-
-    def update_bind_signal_stat(self, area_index):
-        """根据Area Id获取当前Conor下的车控信号状态,并更新该组信号列表状态"""
-        if self.bind_QListWidget is not None:
-            stat_dict = get_conor_signal_group(area_index)
-            self.bind_QListWidget.update_signal_stat_style(stat_dict)
 
 
 class Rotatable(object):
