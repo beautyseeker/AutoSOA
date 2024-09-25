@@ -236,6 +236,9 @@ def get_charger_stat() -> int:
     data_item = data_dict['data']['ChrgrGateWorkStatus']
     return data_item.get('chrgr_port_ajar_sts', -1)
 
+def set_mirror_stat(stat: int) -> int:
+    soa.send_data(service="MirrFoldMgr", rpc="MirrFoldSts",
+                  data={f"MirrFoldStsInfo.left_mirr_fold_sts": stat})
 
 def get_mirror_stat() -> list:
 
