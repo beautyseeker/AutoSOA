@@ -76,7 +76,7 @@ class ZmqClient(object):
             # print("disconnect ZMQ-UDP error: {}".format(e))
         self.udp_socket = None
 
-    def tcp_send_msg(self, msg_payload):
+    def tcp_send_msg(self, msg_payload, show_log=True):
         recv_msg = {}
         try:
             self.connect()
@@ -84,16 +84,20 @@ class ZmqClient(object):
                 return recv_msg
             msg_payload = json.dumps(msg_payload).encode('utf-8')
             self.tcp_socket.send(msg_payload)
-            print("{} ZMQ_TCP_REQ:{}".format(datetime.now().strftime('%H:%M:%S.%f')[:-3], msg_payload))
+            if show_log:
+                print("{} ZMQ_TCP_REQ:{}".format(datetime.now().strftime('%H:%M:%S.%f')[:-3], msg_payload))
         except Exception as e:
-            print("ZMQ_TCP_REQ error:{}".format(e))
+            if show_log:
+                print("ZMQ_TCP_REQ error:{}".format(e))
             self.disconnect()
 
         try:
             recv_msg = json.loads(self.tcp_socket.recv())
-            print("{} ZMQ_TCP_RESP:{}".format(datetime.now().strftime('%H:%M:%S.%f')[:-3], recv_msg))
+            if show_log:
+                print("{} ZMQ_TCP_RESP:{}".format(datetime.now().strftime('%H:%M:%S.%f')[:-3], recv_msg))
         except Exception as e:
-            print("ZMQ_TCP_RESP error:{}".format(e))
+            if show_log:
+                print("ZMQ_TCP_RESP error:{}".format(e))
             self.disconnect()
         finally:
             return recv_msg
@@ -173,7 +177,7 @@ class ZmqClient(object):
         if nonblocking:  # 减少网络阻塞
             self.udp_send_msg(para_dict)
         else:
-            return self.tcp_send_msg(para_dict)
+            return self.tcp_send_msg(para_dict, show_log=False)
 
     def stop_service(self, service, instance_name="", nonblocking=False):
         """
@@ -214,6 +218,7 @@ class ZmqClient(object):
         Returns:
             dict:proto解析后的数据字典
         """
+        self.start_service(service=service, instance_name=instance_name)
         para_dict = {
             "action": "send_data",
             "service": service,

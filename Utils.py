@@ -191,15 +191,11 @@ def get_window_stat() -> list:
 def set_window_stat(area: int, stat: int) -> bool:
     """
     :param area: 从左上角开始area为0,俯视顺时针方向递增
-    :param stat: 2:开门, 1:关门
+    :param stat: 100:开门, 0:关门
     :return:本次状态设置是否成功
     """
-    if stat == 1:
-        open_value = 100
-    else:
-        open_value = 0
     soa.send_data(service="WinMgr", rpc="WinSts",
-                  data={f"WinStsInfo.win_status_info[{area}].win_open_value": open_value})
+                  data={f"WinStsInfo.win_status_info[{area}].win_open_value": stat})
 
 def set_hood_stat(stat: int)-> bool:
     """设置前盖开闭状态"""
