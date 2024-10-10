@@ -10,7 +10,7 @@ from datetime import datetime
 
 class ZmqClient(object):
     instance = None
-    def __init__(self, ip="127.0.0.1", rcv_out=90000, tcp_port=30002, udp_port=30001):
+    def __init__(self, ip="10.110.190.39", rcv_out=90000, tcp_port=30002, udp_port=30001):
         """
         :param ip:
         :param tcp_port: TCP端口号
@@ -233,6 +233,7 @@ class ZmqClient(object):
             return self.tcp_send_msg(para_dict)
 
     def read_data(self, service, rpc='', instance_name="", timeout=5000):
+        self.start_service(service=service, instance_name=instance_name)
         """
         读取数据,
             1，rpc支持get_field，且当前模拟的是client,则发送get_field
