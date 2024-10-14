@@ -1,10 +1,10 @@
 import sys
 
-from PyQt5.QtCore import Qt, QRect, QFileSelector
+from PyQt5.QtCore import Qt, QRect, QFileSelector, QTimer
 from PyQt5.QtGui import QFont, QPalette
 from PyQt5.QtWidgets import QWidget, QComboBox, QRadioButton, QSlider, QApplication, QSizePolicy, QLineEdit, \
     QHBoxLayout, QLabel, QPushButton, QFileDialog, QButtonGroup, QMessageBox, QAbstractButton, QMainWindow, QVBoxLayout, \
-    QListWidget, QTabWidget
+    QListWidget, QTabWidget, QMenuBar
 
 from AutoRoutinePage import AutoRoutinePage
 from HVACPage import HVACPage
@@ -370,13 +370,36 @@ class CarStylePage(QWidget):
     def __init__(self):
         super().__init__()
         single_line_layout = QHBoxLayout()
+        self.slider = QSlider(Qt.Horizontal)
+        self.button = QPushButton("开始/暂停", self)
+        self.button.clicked.connect(self.button_click)
+        single_line_layout.addWidget(self.slider, alignment=Qt.AlignTop)
+        single_line_layout.addWidget(self.button, alignment=Qt.AlignTop)
         self.setLayout(single_line_layout)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_slider)
+        self.is_running = False
+
+
+    def update_slider(self):
+        self.slider.setValue((self.slider.value() + 1) % 101)
+
+    def button_click(self):
+        self.is_running = ~self.is_running
+        if self.is_running:
+            self.timer.stop()
+        else:
+            self.timer.start(200)
+
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AutoSOA")
+        self.menu_bar = QMenuBar(self)
+        check_status_menu = self.menu_bar.addMenu("查看")
+        help_menu = self.menu_bar.addMenu("帮助")
         self.tab_widget = QTabWidget(self)
         self.tab_layout = QVBoxLayout()
         self.car_sig_tab = CarSignalTab()
@@ -391,3 +414,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, a0):
         self.auto_scripts_tab.save_path_config()
+
+    def check_environment_status(self):
+        pass

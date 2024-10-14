@@ -6,8 +6,9 @@ from colorama import init, Fore
 from ZMQClient import ZmqClient
 from Utils import is_app_running_ps, wait_until, is_dir_exists_on_device, run_cmd
 
-replay_data_src_path = r"/home/nio/Desktop/pbdata_play"
-replay_cfg_src_path = r"/home/nio/Desktop/data_adapter_play_debug.json"
+
+replay_data_src_path = r"E:\FeiShu\pbdata_play"
+replay_cfg_src_path = r"E:\FeiShu\data_adapter_play_debug.json"
 replay_cfg_dst_path = "data/user/0/com.nio.metacar/files/AquilaConfig/DA/"
 replay_data_dst_path = "data/user/0/com.nio.metacar/files/AquilaData/"
 # 定义文件和目标路径的映射
@@ -27,8 +28,7 @@ for src_path, dst_path in files_to_push.items():
     else:
         run_cmd(f"adb shell mkdir {dst_path}")
     command = f"adb push \"{src_path}\" \"{dst_path}\""
-    if not run_cmd(command):
-        sys.exit(-1)
+    run_cmd(command)
 
 print(Fore.GREEN + "All replay files Ready.")
 run_cmd(f"adb shell stop")
