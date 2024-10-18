@@ -394,6 +394,13 @@ class CarStylePage(QWidget):
 
 
 class MainWindow(QMainWindow):
+    instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.instance is None:
+            cls.instance = super(MainWindow, cls).__new__(cls)
+        return cls.instance
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AutoSOA")

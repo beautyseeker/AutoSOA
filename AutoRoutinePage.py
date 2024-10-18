@@ -1,6 +1,7 @@
 import os.path
 import threading
 import time
+from time import sleep
 
 import requests
 import json
@@ -8,7 +9,8 @@ from datetime import datetime
 import subprocess
 
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFileDialog, QPushButton, QLineEdit, QVBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFileDialog, QPushButton, QLineEdit, QVBoxLayout, QMessageBox, \
+    QComboBox, QLayout, QLabel
 from colorama import Fore
 
 from Utils import detect_log_finish, run_cmd
@@ -48,8 +50,9 @@ class ConfigEdit(QWidget):
 class AutoRoutinePage(QWidget):
     def __init__(self):
         super().__init__()
-        self.stop_thread = None
-        self.log_detect_thread = None
+        self.test_category = None
+        self.choice_tip = None
+        self.background_thread = None
         self.msg_info_box = None
         self.msg_error_box = None
         self.json_config = {}
@@ -59,18 +62,33 @@ class AutoRoutinePage(QWidget):
         self.unity_project_path = ConfigEdit(placeholder_txt='选择你的Unity工程路径', button_txt='选择路径')
         if os.path.exists(os.path.join(os.getcwd(), 'AutoConfig.json')):
             self.load_path_config()
-        self.build_apk_button = QPushButton("打包生成APK", self)
+        self.build_apk_button = QPushButton("打包并安装UPR测试包", self)
         self.build_apk_button.clicked.connect(self.build_upr_apk)
+
+        self.launch_esd_button = QPushButton("开启ESD场景测试", self)
+        self.launch_esd_button.clicked.connect(self.launch_esd_replay)
 
         self.start_upr_button = QPushButton("执行UPR测试", self)
         self.start_upr_button.clicked.connect(self.start_upr_session)
 
+
+        self.init_test_category()
+        self.VLayout.addWidget(self.choice_tip, alignment=Qt.AlignTop)
+        self.VLayout.addWidget(self.test_category, alignment=Qt.AlignTop)
         self.VLayout.addWidget(self.upr_exe, alignment=Qt.AlignTop)
         self.VLayout.addWidget(self.unity_exe,alignment=Qt.AlignTop)
         self.VLayout.addWidget(self.unity_project_path, alignment=Qt.AlignTop)
         self.VLayout.addWidget(self.build_apk_button, alignment=Qt.AlignTop)
+        self.VLayout.addWidget(self.launch_esd_button, alignment=Qt.AlignTop)
         self.VLayout.addWidget(self.start_upr_button, alignment=Qt.AlignTop)
         self.setLayout(self.VLayout)
+
+    def init_test_category(self):
+
+        self.choice_tip = QLabel(self)
+        self.choice_tip.setText("选择你的自动化测试")
+        self.test_category = QComboBox(self)
+
 
     def save_path_config(self):
         self.json_config["unity_exe"] = self.unity_exe.__str__()
@@ -88,8 +106,9 @@ class AutoRoutinePage(QWidget):
 
 
     def build_upr_apk(self):
-        output_log_path = r'E:log/BuildOutputLog.txt'
+        output_log_path = r'E:/log/BuildOutputLog.txt'
         finish_keyword = 'Exiting without the bug reporter. Application will terminate with return code 0'
+
         unity_build_cmd = (rf"{self.unity_exe} -quit -batchmode -projectPath {self.unity_project_path} "
                            f"-executeMethod ExportAndroidTool.BuildUprAPK -logFile {output_log_path}")
 
@@ -100,30 +119,47 @@ class AutoRoutinePage(QWidget):
 
         self.build_apk_button.setEnabled(False)
         run_cmd(unity_build_cmd, "APK构建完成", "APK构建失败", block=False)
-        # 启用log监听，检测到完成关键字后执行推包
-        detect_log_finish(output_log_path, finish_keyword, self.build_succeed_action)
+        def async_log_detect():
+            detect_log_finish(output_log_path, finish_keyword, self.build_succeed_action)
+            """执行出包命令后，后台异步线程不断检查log路径是否生成了最新的Log文件,生成后再执行后续步骤"""
+            prim_log_modify_timestamp = os.path.getmtime(output_log_path)
+            begin_build_timestamp = time.time()
+            timeout = 10
+            while time.time() - begin_build_timestamp < timeout:
+                current_log_modify_timestamp = os.path.getmtime(output_log_path)
+                if current_log_modify_timestamp - prim_log_modify_timestamp > 0.1:
+                    print("最新日志已生成，开启日志关键字监测")
+                    detect_log_finish(output_log_path, finish_keyword, self.build_succeed_action)
+                    return
+                time.sleep(0.5)
+            print('日志生成超时,流程终止！检查build流程正确性后重试')
+        self.background_thread = threading.Thread(target=async_log_detect)
+        self.background_thread.start()
 
     def build_succeed_action(self):
         self.msg_info_box = QMessageBox.information(self, '通知', f'APK包构建完成！')
-        build_apk_path = os.path.join(self.unity_project_path, "BUILD-APK", "launcher", "build", "outputs", "apk",
-                                      "release", "launcher-release.apk")
+        build_apk_path = os.path.join(fr'{self.unity_project_path}', "BUILD-APK",
+                                      "launcher", "build", "outputs", "apk", "release", "launcher-release.apk")
         if os.path.exists(build_apk_path):
             parent_dir = os.path.dirname(build_apk_path)
             os.startfile(parent_dir)
-            apk_push_cmd = f'adb push -r -t -d {build_apk_path}'
-            res = run_cmd(apk_push_cmd, 'APK安装完成!', 'APK安装失败！', block=False)
-            if res.returncode == 0:
-                self.msg_info_box = QMessageBox.information(self, '通知!', f'APK包安装完成！')
+            apk_push_cmd = f'adb install -r -t {build_apk_path}'
+            print("pushing apk...please wait")
+            run_cmd(apk_push_cmd, 'APK安装完成!', 'APK安装失败！', timeout=10)
+            print(f"推包完成:{build_apk_path}")
         else:
-            QMessageBox.warning(self, '错误!', f"推包失败!路径:{build_apk_path}不存在")
+            print(f"推包失败!路径:{build_apk_path}不存在")
+
+    def launch_esd_replay(self):
+        def async_launch_esd_replay():
+            esd_py_path = r"ESDDataReplay.py"
+            self.launch_esd_button.setEnabled(False)
+            run_cmd(f'python {esd_py_path}', block=False)
+        self.background_thread = threading.Thread(target=async_launch_esd_replay)
+        self.background_thread.start()
 
 
-    def stop_upr_recording(self, rcd_dur=60):
-        time.sleep(rcd_dur)
-        run_cmd(f'{self.upr_exe} --stop')
-
-
-    def start_upr_session(self, record_duration=30):
+    def start_upr_session(self, checked,record_duration=30):
         """开始执行UPR测试,前置条件为adb已连接,所测Unity进程已经启动"""
         print("开始执行UPR测试")
         api_endpoint = "http://10.132.134.40/open-api/sessions"
@@ -188,26 +224,30 @@ class AutoRoutinePage(QWidget):
         # If session_id is found, execute the next command
         if session_id and session_id != "SessionId not found":
             # Construct the command
-            command = [
-                rf'{self.upr_exe}',
-                "-p", "127.0.0.1",  # Replace <device_ip> with the actual device IP
-                "-s", session_id,
-                "-n", "com.nio.metacar"  # Replace with the actual package name if different
-            ]
+            upr_record_cmd = rf"{self.upr_exe} -p 127.0.0.1 -s {session_id} -n com.nio.metacar"
 
-            # Change directory and run the command
             try:
-                self.stop_thread = threading.Thread(target=self.stop_upr_recording)
-                self.stop_thread.start()
-                subprocess.run(command, cwd=os.path.curdir, check=True)
-                print("UPRDesktop.exe executed successfully.")
+                def async_upr_record():
+                    self.start_upr_button.setEnabled(False)
+                    run_cmd(upr_record_cmd, block=False)
+                    print("UPRDesktop.exe executed successfully.")
+                    print("recording duration:", record_duration)
+                    for i in range(record_duration):
+                        if i % 5 == 0:
+                            print(f'upr recording...{i} sec')
+                        time.sleep(1)
+                    run_cmd(f'{self.upr_exe} --stop')
+                    self.start_upr_button.setEnabled(True)
+                self.background_thread = threading.Thread(target=async_upr_record)
+                self.background_thread.start()
             except subprocess.CalledProcessError as e:
-                print(f"Error occurred while executing UPRDesktop.exe: {e}")
+                self.start_upr_button.setEnabled(True)
+                print(f"UPR录制启动错误: {e}")
         else:
             print("No valid SessionId found. UPRDesktop.exe will not be executed.")
 
 
-class CMDThread(QThread):
+class BackThread(QThread):
     output_signal = pyqtSignal()
 
     def __init__(self, async_action):
@@ -216,4 +256,5 @@ class CMDThread(QThread):
 
     def run(self):
         self.async_action()
+        self.output_signal.emit()
 

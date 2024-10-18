@@ -3,6 +3,8 @@ import sys
 import time
 from subprocess import CompletedProcess
 from typing import Callable, Union
+
+from PyQt5.QtWidgets import QMessageBox
 from colorama import init, Fore
 from enum  import IntEnum, Enum
 
@@ -46,7 +48,7 @@ def is_adb_device_connect() -> bool:
     try:
         result = subprocess.run(["adb", "devices"], capture_output=True, text=True)
         output = result.stdout.splitlines()
-        devices = [line for line in output if "device" in line and not line.startswith("List")]
+        devices = [line for line in output if "device" in line and not line.startswith("List") and "offline" not in line]
         if devices:
             return True
         else:
@@ -61,13 +63,8 @@ def is_app_running_ps(package_name):
         # 使用 adb shell ps 命令列出进程
         result = subprocess.run(
             ["adb", "shell", "ps"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True, text=True
         )
-        if type(package_name) == str:
-            package_name = package_name.decode()
-        elif type(package_name) == AppSimplifiedName:
-            package_name = package_name.value.decode()
         # 检查包名是否在进程列表中
         if package_name in result.stdout:
             print(f"应用 {package_name} 已启动")
@@ -76,8 +73,11 @@ def is_app_running_ps(package_name):
             print(f"应用 {package_name} 未启动")
             return False
     except Exception as e:
-        print(f"发生错误: {e}")
+        print(f"运行adb shell ps发生错误: {e}")
         return False
+
+def is_ZMQ_available() -> bool:
+    pass
 
 
 def wait_until(condition: Callable[..., bool], *args,  interval=2, timeout=150, delay_wait=0, callback=None, **kwargs,):
@@ -92,60 +92,53 @@ def wait_until(condition: Callable[..., bool], *args,  interval=2, timeout=150, 
     if callback is not None:
         callback()
 
-def run_cmd(cmd: str, success_prompt='', failed_prompt='', block=True):
+def run_cmd(cmd: str, success_prompt='', failed_prompt='', block=True, timeout=5):
     try:
-        print(f"Executing: {cmd}")
+        print(f"running cmd: {cmd}")
         if block:
-            cmd_progress = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            cmd_progress = subprocess.run(cmd, shell=True, text=True, timeout=timeout)
             if cmd_progress.returncode == 0:
                 print(success_prompt)
-                print(f"Command Output:\n{cmd_progress.stdout}")
-            else:
-                print(f'{failed_prompt} Non-zero exit code:\n{cmd_progress.stderr}')
+                # if MainWindow.instance is not None:
+                #     QMessageBox.information(MainWindow.instance, "通知", success_prompt)
 
         else:
-            with subprocess.Popen(["powershell", "-Command", cmd], bufsize=1,stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE, text=True, encoding='utf-8',errors='ignore') as cmd_progress:
+            with subprocess.Popen(["powershell", "-Command", cmd],stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True) as cmd_progress:
                 pass
-                # while True:
-                #         line = cmd_progress.stdout.readline().strip()
-                #         if line:
-                #             print(f"PowerShell Output: {line}")
-                #         else:
-                #             break
 
         return cmd_progress
+    except subprocess.TimeoutExpired as e:
+        print(Fore.RED + f"{failed_prompt},命令行运行超时: {e}")
     except subprocess.SubprocessError as e:
-        print(Fore.RED + f"exception occur: {e.stderr.decode()}")
+        print(Fore.RED + f"{failed_prompt},命令行调用错误: {e}")
+    except Exception as e:
+        print(Fore.RED + f"{failed_prompt},命令行调用未知错误: {e}")
+    # finally:
+    #     if failed_prompt != '' and MainWindow.instance is not None:
+    #         QMessageBox.warning(MainWindow.instance, "警告!", failed_prompt)
+
 
 
 def detect_log_finish(log_path, finish_flag, finish_callback):
     # PowerShell 命令，实时监听文件的变化，直到找到目标字符串
     powershell_command = f"Get-Content {log_path} -Wait"
-
-    # 启动 PowerShell 并监听日志文件
-    with subprocess.Popen(["powershell", "-Command", powershell_command], bufsize=1,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8',errors='ignore') as process:
-        print(f"开始监听 {log_path}，等待目标字符串 '{finish_flag}'...")
-
-        print(process.stderr)
-
-        while True:
-            # 读取 PowerShell 输出的每一行
-            line = process.stdout.readline().strip()
-            if line:
-                print(f"Build日志: {line}")
-                # 检查是否出现目标字符串
+    try:
+        # 启动 PowerShell 并监听日志文件
+        with subprocess.Popen(["powershell", "-Command", powershell_command],stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, text=True, encoding='utf-8',errors='ignore') as process:
+            print(f"开始监听 {log_path}，等待目标字符串 '{finish_flag}'...")
+            for line in process.stdout:
+                print(f'Build日志: {line.strip()}')
                 if finish_flag in line:
                     print(f"出现目标字符串 '{finish_flag}'，执行下一步命令...")
                     if finish_callback:
                         finish_callback()
-                    # 终止 PowerShell 进程
-                    process.terminate()
-
-
-
                     break
+    except subprocess.TimeoutExpired as e:
+        print(Fore.RED + f"运行超时:{e}")
+    except Exception as e:
+        print(Fore.RED + f"检查日志未知错误: {e}")
 
 
 def replay(data_filename: str) -> bool:

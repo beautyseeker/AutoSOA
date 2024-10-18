@@ -11,7 +11,7 @@ from Utils import run_cmd
 
 
 def stop_upr_recording():
-    time.sleep(60)
+    time.sleep(30)
     run_cmd(r"E:\\Tools\\UnityUPR\\UPRDesktop.exe --stop")
 
 stop_thread = threading.Thread(target=stop_upr_recording)
@@ -29,8 +29,8 @@ session_name = f"metacar-{timestamp}"
 session_request = {
     "AbnormalFrameTimeThreshold": 60,
     "CaptureWebGL": False,
-    "EnableADBMemoryCollection": True,
-    "EnableAbnormalFrame": True,
+    "EnableADBMemoryCollection": False,
+    "EnableAbnormalFrame": False,
     "EnableAutoObjectSnapshot": True,
     "EnableCaptureRenderingThread": True,
     "EnableDeepLua": False,
@@ -44,7 +44,7 @@ session_request = {
     "GPUProfileFrequency": 1000,
     "GameName": "metacar",
     "GameVersion": "1",
-    "Monitor": True,
+    "Monitor": False,
     "ObjectSnapshotFrequency": 5,
     "PackageName": "com.nio.metacar",
     "ProjectId": "17b6c10b-389a-4fb5-9158-3a4eb9b3f187",
