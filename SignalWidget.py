@@ -155,13 +155,24 @@ gear_dict = {
         'sig_name': '挡位',
         'sig_area_enum': {},
         'sig_sts_enum': {'P挡': 0, 'N挡': 1, 'R挡': 2, 'D挡': 3},
-        'sig_sts_field': {'GearInfo.display_act_gear': '{}','GearInfo.display_act_gear_vld': 1},
+        'sig_sts_field': {'GearInfo.display_act_gear': '{}','GearInfo.display_act_gear_vld': '1'},
         'sig_val_field': {},
     }
 }
 
 car_speed_dict = {
-
+    'soa_dict': {
+        'service': 'SpeedInfoMgr',
+        'instance_name': '',
+        'rpc': 'DspSpdInfo',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '表显车速',
+        'sig_area_enum': {},
+        'sig_val_field': {'soa_field': {'DspSpdInfoDta.speed_value': '{}'},
+                          'min': 0, 'max': 220, 'val_prompt': '表显车速'},
+    }
 }
 
 car_signal_category_dict = {
@@ -177,6 +188,7 @@ car_signal_category_dict = {
     ],
     '行车状态':[
         gear_dict,
+        car_speed_dict
     ],
     '外部灯光':[
 
@@ -226,7 +238,7 @@ class SignalWidget(QWidget):
         self.create_signal_mode_comboBox()
         self.create_signal_enum_button()
         self.create_signal_value_slider()
-        self.create_signal_value_eidt()
+        self.create_signal_value_edit()
 
 
     def init_ui(self):
@@ -292,7 +304,7 @@ class SignalWidget(QWidget):
         soa_dict['data'] = temp_dict
         soa.send_data(**soa_dict)
 
-    def create_signal_value_eidt(self):
+    def create_signal_value_edit(self):
         if self.init_dict['ui_cfg_dict']['sig_val_field'].__len__() != 0:
             self.val_edit = QLineEdit(self)
             self.val_edit.setPlaceholderText(str(self.init_dict['ui_cfg_dict']['sig_val_field'].get('val_prompt', None)))
@@ -327,6 +339,7 @@ class SignalWidget(QWidget):
         if not edit_val.isdigit():
             QMessageBox.warning(self, '输入错误!', f'信号{self.sig_name}输入错误,请重新输入!')
         self.val_slider.setValue(int(edit_val))
+        self.send_signal_val()
 
 class CarSignalTab(QWidget):
 

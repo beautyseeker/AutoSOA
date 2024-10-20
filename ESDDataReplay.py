@@ -36,9 +36,9 @@ run_cmd(f"adb shell start")
 
 #模拟长按唤出自车界面
 long_press = lambda : run_cmd(f"adb shell input swipe 900 700 900 700 2000")
-wait_until(is_app_running_ps, package_name=b"com.nextev.account", delay_wait=20, callback=long_press)
+wait_until(is_app_running_ps, package_name="com.nextev.account", delay_wait=20, callback=long_press)
 
-wait_until(is_app_running_ps, package_name=b"com.nio.metacar")
+wait_until(is_app_running_ps, package_name="com.nio.metacar")
 
 
 # 模拟SOA服务发送D挡

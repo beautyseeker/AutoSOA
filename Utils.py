@@ -129,7 +129,7 @@ def detect_log_finish(log_path, finish_flag, finish_callback):
                               stderr=subprocess.PIPE, text=True, encoding='utf-8',errors='ignore') as process:
             print(f"开始监听 {log_path}，等待目标字符串 '{finish_flag}'...")
             for line in process.stdout:
-                print(f'Build日志: {line.strip()}')
+                print(f'监测日志: {line.strip()}')
                 if finish_flag in line:
                     print(f"出现目标字符串 '{finish_flag}'，执行下一步命令...")
                     if finish_callback:

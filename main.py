@@ -1,11 +1,4 @@
-import json
-import os.path
-import time
-
-from PIL.ImageCms import Flags
 from PyQt5.QtWidgets import QApplication, QMainWindow, QButtonGroup
-from charset_normalizer import detect
-
 from SignalWidget import MainWindow
 from Utils import *
 
