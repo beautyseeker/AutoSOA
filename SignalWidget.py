@@ -175,6 +175,156 @@ car_speed_dict = {
     }
 }
 
+mileage_dict = {
+    'soa_dict': {
+        'service': 'RangeEstMgr',
+        'instance_name': '',
+        'rpc': 'EstCusSlctMileage',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '剩余里程数',
+        'sig_area_enum': {},
+        'sig_val_field': {'soa_field': {'EstCustSelecMlgDta.est_customer_select_mileage': '{}'},
+                          'min': 0, 'max': 500, 'val_prompt': '剩余里程数Km'},
+    }
+}
+
+charge_upper_dict = {
+    'soa_dict': {
+        'service': 'ChargingMgr',
+        'instance_name': '',
+        'rpc': 'MaxChrgSoc',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '充电上限',
+        'sig_area_enum': {},
+        'sig_val_field': {'soa_field': {'MaxChrgSocStsDta.max_chrg_soc': '{}'},
+                  'min': 0, 'max': 100, 'val_prompt': '充电上限百分比'},
+    }
+}
+
+remain_energy_dict = {
+    'soa_dict': {
+        'service': 'BmsBase',
+        'instance_name': '',
+        'rpc': 'BmsSoxInfo',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '剩余电量',
+        'sig_val_field': {'soa_field': {'BmsSoxInfoMsIn.bmssocinfo.bmscustomerusagesoc': '{}'},
+                          'min': 0, 'max': 100, 'val_prompt': '剩余电量百分比'},
+    }
+}
+
+charge_plug_dict = {
+    'soa_dict': {
+        'service': 'HvChrgDisplyMgr',
+        'instance_name': '',
+        'rpc': 'HvChrgSts',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '充电枪状态',
+        'sig_sts_enum': {'连接':3, '断开':0},
+        'sig_sts_field': {'HvChrgStsMsIn.chrglinests': '{}'},
+        'sig_val_field': {},
+    }
+}
+
+charging_stat_dict = {
+    'soa_dict': {
+        'service': 'HvChrgDisplyMgr',
+        'instance_name': '',
+        'rpc': 'HvChrgSts',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '充电状态',
+        'sig_area_enum': {'充电中':2, '准备就绪':1, '充电完成':3, '充电满':4, '充电枪故障':5,'充电站故障':6, '充电暂停':7},
+        'sig_sts_field': {'HvChrgStsMsIn.chrgsatus': '{}'},
+        'sig_val_field': {},
+    }
+}
+
+charging_efficiency_dict = {
+    'soa_dict': {
+        'service': 'RangeEstMgr',
+        'instance_name': '',
+        'rpc': 'EstmTenMinRngMileage',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '充电效率',
+        'sig_sts_enum': {},
+        'sig_val_field': {'soa_field': {'EstmTenMinRngMileageDta.est_ten_min_rng_mileage': '{}'},
+                  'min': 0, 'max': 100, 'val_prompt': '充电10min可续航公里数'},
+    }
+}
+
+charging_info_dict = {
+    'soa_dict': {
+        'service': 'HvChrgDisplyMgr',
+        'instance_name': '',
+        'rpc': 'HvChargingInfo',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '充电中参数',
+        'sig_sts_enum': {},
+        'sig_area_enum': {'充电电流':'vehinputchargecurrent', '充电电压':'vehinputchargevoltage',
+                          '充电功率':'vehinputchargepower','剩余充电时间':'estimatechrgtime'},
+        'sig_sts_field': {},
+        'sig_val_field': {'soa_field': {'HvChargingInfoMsIn.{}': '{}'},
+                          'min': 0, 'max': 100, 'val_prompt': '充电参数'},
+    }
+}
+
+discharge_plug_dict = {
+    'soa_dict': {
+        'service': 'HvChrgDisplyMgr',
+        'instance_name': '',
+        'rpc': 'HvChrgSts',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '',
+        'sig_sts_enum': {},
+
+    },
+
+}
+
+discharge_stat_dict = {
+    'soa_dict': {
+        'service': 'RangeEstMgr',
+        'instance_name': '',
+        'rpc': 'EstmTenMinRngMileage',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '',
+        'sig_sts_enum': {},
+    }
+}
+
+discharge_info_dict = {
+    'soa_dict': {
+        'service': 'HvChrgDisplyMgr',
+        'instance_name': '',
+        'rpc': 'HvChargingInfo',
+        'data': {}
+    },
+    'ui_cfg_dict': {
+        'sig_name': '放电中参数',
+        'sig_sts_enum': {},
+        'sig_area_enum': {},
+        'sig_val_field': {},
+    }
+}
+
 car_signal_category_dict = {
     '旋转部件':[
         door_dict,
@@ -188,15 +338,26 @@ car_signal_category_dict = {
     ],
     '行车状态':[
         gear_dict,
-        car_speed_dict
+        car_speed_dict,
+        mileage_dict
     ],
     '外部灯光':[
 
     ],
 
-    '充放电':[
+    '充电':[
+        charge_upper_dict,
+        remain_energy_dict,
+        charge_plug_dict,
+        charging_stat_dict,
+        charging_efficiency_dict,
+        charging_info_dict
+    ],
+
+    '放电':[
 
     ],
+
     '内外饰配置':[
 
     ]
@@ -276,6 +437,14 @@ class SignalWidget(QWidget):
                 self.button_group.setExclusive(False)
                 checked_btn.setChecked(False)
                 self.button_group.setExclusive(True)
+        else:
+            # 为应对信号枚举值过多布局问题，如果没有RadioButtonGroup和信号Edit,则临时将AreaComboBox值当信号枚举值用
+            if self.val_edit is None:
+                stat = self.sig_area_comboBox.currentData()
+                soa_dict = self.init_dict['soa_dict']
+                temp_dict = {key.format(0): int(val.format(stat)) for key, val in self.init_dict['ui_cfg_dict']['sig_sts_field'].items()}
+                soa_dict['data'] = temp_dict
+                soa.send_data(**soa_dict)
 
     def send_signal_stat(self, selected_btn: QAbstractButton):
         stat = self.button_group.id(selected_btn)
@@ -321,10 +490,10 @@ class SignalWidget(QWidget):
         sig_area_enum = self.init_dict['ui_cfg_dict'].get('sig_area_enum', None)
         if sig_area_enum is not None and self.init_dict['ui_cfg_dict']['sig_area_enum'].__len__() != 0:
             self.sig_area_comboBox = QComboBox(self)
-            self.sig_area_comboBox.currentIndexChanged.connect(self.button_group_uncheck)
             for key, val in self.init_dict['ui_cfg_dict']['sig_area_enum'].items():
                 self.sig_area_comboBox.addItem(key, val)
             self.layout.addWidget(self.sig_area_comboBox)
+            self.sig_area_comboBox.currentIndexChanged.connect(self.button_group_uncheck)
 
     def create_signal_mode_comboBox(self):
         sig_mode_enum = self.init_dict['ui_cfg_dict'].get('sig_mode_enum', None)

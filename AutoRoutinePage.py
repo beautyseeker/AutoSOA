@@ -67,10 +67,10 @@ class AutoRoutinePage(QWidget):
         self.build_apk_button = QPushButton("一键打包/安装/测试/生成UPR测试报告", self)
         self.build_apk_button.clicked.connect(self.build_upr_apk)
 
-        self.launch_esd_button = QPushButton("开启ESD场景测试", self)
+        self.launch_esd_button = QPushButton("开启ESD场景数据回放测试", self)
         self.launch_esd_button.clicked.connect(self.async_launch_esd_replay)
 
-        self.start_upr_button = QPushButton("执行UPR测试", self)
+        self.start_upr_button = QPushButton("启动UPR录制", self)
         self.start_upr_button.clicked.connect(self.async_upr_record)
 
 
@@ -88,7 +88,7 @@ class AutoRoutinePage(QWidget):
     def init_test_category(self):
 
         self.choice_tip = QLabel(self)
-        self.choice_tip.setText("选择你的自动化测试")
+        self.choice_tip.setText("选择你的自动化测试类型")
         self.test_category = QComboBox(self)
 
 
